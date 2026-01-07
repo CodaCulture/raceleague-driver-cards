@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Driver Card Generator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <style>
 body{
@@ -16,21 +15,8 @@ body{
   justify-content:center;
   padding:24px;
 }
-
-.hidden{display:none}
-
-.panel{width:500px;display:grid;gap:16px}
-
-/* ---------- BUILDER ---------- */
-.builder{
-  background:rgba(0,0,0,.5);
-  border-radius:20px;
-  padding:16px;
-  display:grid;
-  gap:10px;
-}
-
-input, select, textarea, button{
+.panel{width:520px;display:grid;gap:16px}
+input,select,textarea,button{
   padding:12px;
   border-radius:12px;
   border:none;
@@ -38,115 +24,20 @@ input, select, textarea, button{
   color:#fff;
   font-weight:700;
 }
-
-textarea{
-  resize:vertical;
-  min-height:130px;
-}
-
-button{
-  background:#3a5cff;
-  cursor:pointer;
-}
-
-/* ---------- CARD (RENDER SOURCE) ---------- */
-.card{
-  position:relative;
-  width:480px;
-  border-radius:28px;
-  padding:24px;
-  overflow:hidden;
-}
-
-.card::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:linear-gradient(135deg,var(--bg1),var(--bg2));
-  z-index:-2;
-}
-
-.logo-bg{
-  position:absolute;
-  inset:0;
-  background-repeat:no-repeat;
-  background-position:center;
-  background-size:70%;
-  opacity:.08;
-  z-index:-1;
-}
-
-.avatar{
-  width:120px;
-  height:120px;
-  border-radius:22px;
-  background:#000;
-  margin:0 auto 10px;
-}
-
-.name{
-  text-align:center;
-  font-size:22px;
-  font-weight:900;
-}
-
-.avg{
-  text-align:center;
-  font-size:64px;
-  font-weight:900;
-  margin:8px 0;
-}
-
-.stats{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
-
-.stat{
-  background:rgba(0,0,0,.55);
-  border-radius:14px;
-  padding:10px;
-}
-
-.stat label{
-  font-size:12px;
-  opacity:.7;
-}
-
-.value{
-  background:var(--stat);
-  color:#000;
-  font-weight:900;
-  text-align:center;
-  padding:8px;
-  border-radius:10px;
-  font-size:20px;
-}
-
-/* ---------- EXPORT PAGE ---------- */
-.export{
-  background:rgba(0,0,0,.5);
-  border-radius:20px;
-  padding:16px;
-  display:grid;
-  gap:12px;
-}
+textarea{min-height:130px;resize:vertical}
+button{background:#3a5cff;cursor:pointer}
 
 .preview{
   width:100%;
   border-radius:20px;
-  display:block;
+  background:#000;
 }
-
 </style>
 </head>
 
 <body>
 <div class="panel">
 
-<!-- BUILDER -->
-<div class="builder" id="builder">
   <select id="team">
     <option value="vassetti">Vassetti Corse</option>
     <option value="vassetti_enduro">Vassetti Enduro</option>
@@ -162,102 +53,112 @@ button{
   </select>
 
   <input id="driverName" placeholder="Driver Name">
-
   <input type="file" id="avatarInput" accept="image/png">
 
   <textarea id="ratingsInput" placeholder="-Attacking 6/10"></textarea>
 
   <button onclick="generate()">Generate Card</button>
-</div>
 
-<!-- HIDDEN RENDER CARD -->
-<div class="card hidden" id="card"></div>
-
-<!-- EXPORT -->
-<div class="export hidden" id="export">
   <input id="filename" value="driver_card.png">
   <img id="preview" class="preview">
-  <button onclick="saveImage()">Save Image</button>
-</div>
+  <button onclick="save()">Save Image</button>
 
 </div>
+
+<canvas id="canvas" width="960" height="1200" hidden></canvas>
 
 <script>
 const teams={
-  vassetti:{bg1:"#F2C300",bg2:"#0B0B0B",stat:"#F2C300",logo:"assets/logos/vassetti.png"},
-  vassetti_enduro:{bg1:"#0B0B0B",bg2:"#000",stat:"#F2C300",logo:"assets/logos/vassetti_enduro.png"},
-  mps:{bg1:"#C40000",bg2:"#400000",stat:"#E0E0E0",logo:"assets/logos/MPS.png"},
-  lotus:{bg1:"#B89B3C",bg2:"#0B0B0B",stat:"#B89B3C",logo:"assets/logos/lotus.png"},
-  nc:{bg1:"#C40000",bg2:"#0B0B0B",stat:"#FFD200",logo:"assets/logos/nc.png"},
-  aierra:{bg1:"#FFFFFF",bg2:"#111",stat:"#FF4FA3",logo:"assets/logos/aierra.png"},
-  stuttgart:{bg1:"#CFCFCF",bg2:"#0A3A6A",stat:"#CFCFCF",logo:"assets/logos/stuttgart.png"},
-  redboars:{bg1:"#0B1530",bg2:"#C40000",stat:"#C40000",logo:"assets/logos/redboars.png"},
-  hive:{bg1:"#0F1F3A",bg2:"#000814",stat:"#C8A100",logo:"assets/logos/hive.png"},
-  mismo:{bg1:"#0B2A1A",bg2:"#102015",stat:"#FF7A18",logo:"assets/logos/mismo.png"},
-  atlas:{bg1:"#7FD3FF",bg2:"#FFFFFF",stat:"#7FD3FF",logo:"assets/logos/atlas.png"}
+  vassetti:{c1:"#F2C300",c2:"#0B0B0B",logo:"assets/logos/vassetti.png"},
+  vassetti_enduro:{c1:"#0B0B0B",c2:"#000",logo:"assets/logos/vassetti_enduro.png"},
+  mps:{c1:"#C40000",c2:"#400000",logo:"assets/logos/mps.png"},
+  lotus:{c1:"#B89B3C",c2:"#0B0B0B",logo:"assets/logos/lotus.png"},
+  nc:{c1:"#C40000",c2:"#0B0B0B",logo:"assets/logos/nc.png"},
+  aierra:{c1:"#FFFFFF",c2:"#222",logo:"assets/logos/aierra.png"},
+  stuttgart:{c1:"#CFCFCF",c2:"#0A3A6A",logo:"assets/logos/stuttgart.png"},
+  redboars:{c1:"#0B1530",c2:"#C40000",logo:"assets/logos/redboars.png"},
+  hive:{c1:"#0F1F3A",c2:"#000814",logo:"assets/logos/hive.png"},
+  mismo:{c1:"#0B2A1A",c2:"#102015",logo:"assets/logos/mismo.png"},
+  atlas:{c1:"#7FD3FF",c2:"#FFFFFF",logo:"assets/logos/atlas.png"}
 };
 
-function round25(v){return Math.round(v*4)/4}
-
-function parseRatings(txt){
-  return txt.split("\n").map(l=>{
+function parseRatings(t){
+  return t.split("\n").map(l=>{
     const m=l.match(/-?\s*([^0-9]+)\s*([\d.]+)/);
-    return m?{name:m[1].trim(),value:round25(+m[2])}:null;
+    return m?{name:m[1].trim(),v:+m[2]}:null;
   }).filter(Boolean);
 }
 
-async function generate(){
-  const team=teams[document.getElementById("team").value];
-  const name=document.getElementById("driverName").value.toUpperCase();
-  const ratings=parseRatings(document.getElementById("ratingsInput").value);
+function generate(){
+  const team=teams[team.value];
+  const name=driverName.value.toUpperCase();
+  const ratings=parseRatings(ratingsInput.value);
 
-  const card=document.getElementById("card");
-  card.innerHTML="";
-  card.style.setProperty("--bg1",team.bg1);
-  card.style.setProperty("--bg2",team.bg2);
-  card.style.setProperty("--stat",team.stat);
+  const canvas=document.getElementById("canvas");
+  const ctx=canvas.getContext("2d");
 
-  card.innerHTML=`
-    <div class="logo-bg" style="background-image:url('${team.logo}')"></div>
-    <div class="avatar"></div>
-    <div class="name">${name}</div>
-    <div class="avg">${calcAvg(ratings).toFixed(2)}</div>
-    <div class="stats">
-      ${ratings.map(r=>`
-        <div class="stat">
-          <label>${r.name}</label>
-          <div class="value">${r.value.toFixed(2)}</div>
-        </div>`).join("")}
-    </div>
-  `;
+  // background
+  const g=ctx.createLinearGradient(0,0,960,1200);
+  g.addColorStop(0,team.c1);
+  g.addColorStop(1,team.c2);
+  ctx.fillStyle=g;
+  ctx.fillRect(0,0,960,1200);
 
-  const file=document.getElementById("avatarInput").files[0];
-  if(file){
-    const img=URL.createObjectURL(file);
-    card.querySelector(".avatar").style.backgroundImage=`url(${img})`;
-    card.querySelector(".avatar").style.backgroundSize="cover";
+  // logo watermark
+  const logo=new Image();
+  logo.onload=()=>{
+    ctx.globalAlpha=0.08;
+    ctx.drawImage(logo,180,300,600,600);
+    ctx.globalAlpha=1;
+
+    drawContent();
+  };
+  logo.src=team.logo;
+
+  function drawContent(){
+    ctx.fillStyle="#fff";
+    ctx.font="900 48px Arial";
+    ctx.textAlign="center";
+    ctx.fillText(name,480,80);
+
+    const valid=ratings.filter(r=>!["Penalties","Lag"].includes(r.name));
+    const avg=valid.reduce((a,b)=>a+b.v,0)/valid.length||0;
+
+    ctx.font="900 120px Arial";
+    ctx.fillText(avg.toFixed(2),480,220);
+
+    ctx.font="16px Arial";
+    ctx.fillText("Average Rating",480,260);
+
+    let x=80,y=330;
+    ctx.font="700 28px Arial";
+    ratings.forEach((r,i)=>{
+      ctx.fillText(`${r.name}: ${r.v.toFixed(2)}`,x,y);
+      y+=50;
+      if(i===4){x=500;y=330;}
+    });
+
+    if(avatarInput.files[0]){
+      const a=new Image();
+      a.onload=()=>{
+        ctx.drawImage(a,380,340,200,200);
+        finish();
+      };
+      a.src=URL.createObjectURL(avatarInput.files[0]);
+    } else finish();
   }
 
-  const canvas=await html2canvas(card,{scale:2,useCORS:true});
-  const img=canvas.toDataURL("image/png");
-
-  document.getElementById("preview").src=img;
-  document.getElementById("builder").classList.add("hidden");
-  document.getElementById("export").classList.remove("hidden");
+  function finish(){
+    preview.src=canvas.toDataURL("image/png");
+  }
 }
 
-function calcAvg(r){
-  const valid=r.filter(s=>!["Penalties","Lag"].includes(s.name));
-  return valid.reduce((a,b)=>a+b.value,0)/valid.length||0;
-}
-
-function saveImage(){
+function save(){
   const a=document.createElement("a");
-  a.href=document.getElementById("preview").src;
-  a.download=document.getElementById("filename").value||"driver_card.png";
+  a.href=preview.src;
+  a.download=filename.value||"driver_card.png";
   a.click();
 }
 </script>
 </body>
 </html>
-
