@@ -2,18 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Driver Rating Card</title>
+<title>Driver Card Generator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 <style>
-:root{
-  --bg1:#111;
-  --bg2:#000;
-  --accent:#fff;
-  --stat:#fff;
-}
-
 body{
   margin:0;
   background:#0b0b10;
@@ -24,297 +17,246 @@ body{
   padding:24px;
 }
 
-.panel{width:480px;display:grid;gap:14px}
+.hidden{display:none}
 
-/* TOOLBAR */
-.toolbar{
-  background:rgba(0,0,0,.45);
-  border-radius:18px;
+.panel{width:500px;display:grid;gap:16px}
+
+/* ---------- BUILDER ---------- */
+.builder{
+  background:rgba(0,0,0,.5);
+  border-radius:20px;
   padding:16px;
   display:grid;
   gap:10px;
 }
-.toolbar select,
-.toolbar input,
-.toolbar textarea,
-.toolbar button{
+
+input, select, textarea, button{
   padding:12px;
   border-radius:12px;
   border:none;
+  background:#111;
+  color:#fff;
   font-weight:700;
-  font-family:inherit;
 }
-.toolbar textarea{
-  background:#111;
-  color:#fff;
+
+textarea{
   resize:vertical;
-  min-height:140px;
+  min-height:130px;
 }
-.toolbar select,
-.toolbar input{
-  background:#111;
-  color:#fff;
-}
-.toolbar button{
+
+button{
   background:#3a5cff;
-  color:#fff;
   cursor:pointer;
 }
 
-/* CARD */
+/* ---------- CARD (RENDER SOURCE) ---------- */
 .card{
   position:relative;
-  border-radius:30px;
+  width:480px;
+  border-radius:28px;
   padding:24px;
   overflow:hidden;
-  box-shadow:0 40px 90px rgba(0,0,0,.75);
 }
+
 .card::before{
   content:"";
   position:absolute;
   inset:0;
   background:linear-gradient(135deg,var(--bg1),var(--bg2));
-  z-index:-4;
+  z-index:-2;
 }
-.card::after{
-  content:"";
+
+.logo-bg{
   position:absolute;
   inset:0;
-  background:linear-gradient(60deg,rgba(255,255,255,.04) 1px,transparent 1px);
-  background-size:28px 28px;
-  opacity:.45;
-  z-index:-3;
+  background-repeat:no-repeat;
+  background-position:center;
+  background-size:70%;
+  opacity:.08;
+  z-index:-1;
 }
 
-.accent{
-  position:absolute;
-  left:0;top:0;bottom:0;
-  width:8px;
-  background:var(--accent);
-  box-shadow:0 0 18px var(--accent);
-}
-
-/* TEAM LOGOS */
-.visible-logo{
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:150%;
-  height:150%;
-  transform:translate(-50%,-50%);
-  object-fit:contain;
-  opacity:.09;
-  filter:blur(2px);
-  z-index:-2;
-  pointer-events:none;
-}
-
-.export-logo{
-  position:absolute;
-  left:0;
-  top:0;
-  width:1px;
-  height:1px;
-  opacity:0;
-  z-index:-999;
-}
-
-/* HEADER */
-.top{display:grid;justify-items:center;gap:14px}
 .avatar{
-  width:120px;height:120px;
+  width:120px;
+  height:120px;
   border-radius:22px;
-  object-fit:cover;
   background:#000;
+  margin:0 auto 10px;
 }
+
 .name{
+  text-align:center;
   font-size:22px;
   font-weight:900;
-  letter-spacing:1px;
-  text-transform:uppercase;
 }
 
-/* AVERAGE */
 .avg{
+  text-align:center;
   font-size:64px;
   font-weight:900;
-  text-align:center;
-  margin-top:8px;
+  margin:8px 0;
 }
-.avg-sub{text-align:center;opacity:.7;font-size:12px}
 
-/* STATS */
 .stats{
-  margin-top:18px;
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:12px;
+  gap:10px;
 }
+
 .stat{
   background:rgba(0,0,0,.55);
-  border-radius:16px;
-  padding:12px;
-  display:grid;
-  gap:6px;
+  border-radius:14px;
+  padding:10px;
 }
+
 .stat label{
   font-size:12px;
   opacity:.7;
-  font-weight:800;
-}
-.value{
-  padding:10px;
-  border-radius:12px;
-  background:var(--stat);
-  color:#000;
-  font-size:24px;
-  font-weight:900;
-  text-align:center;
 }
 
-.export{
-  padding:14px;
-  border-radius:14px;
-  border:none;
-  background:#3a5cff;
-  color:#fff;
+.value{
+  background:var(--stat);
+  color:#000;
   font-weight:900;
-  cursor:pointer;
+  text-align:center;
+  padding:8px;
+  border-radius:10px;
+  font-size:20px;
 }
+
+/* ---------- EXPORT PAGE ---------- */
+.export{
+  background:rgba(0,0,0,.5);
+  border-radius:20px;
+  padding:16px;
+  display:grid;
+  gap:12px;
+}
+
+.preview{
+  width:100%;
+  border-radius:20px;
+  display:block;
+}
+
 </style>
 </head>
 
 <body>
 <div class="panel">
 
-  <div class="toolbar">
-    <select id="team">
-      <option value="vassetti">Vassetti Corse</option>
-      <option value="vassetti_enduro">Vassetti Enduro</option>
-      <option value="mps">MPS Racing Team</option>
-      <option value="lotus">Lotus GP</option>
-      <option value="nc">NC Corse</option>
-      <option value="aierra">Aierra Racing</option>
-      <option value="stuttgart">Stuttgart</option>
-      <option value="redboars">Red Boars Racing</option>
-      <option value="hive">CS Hive Racing</option>
-      <option value="mismo">Mismo LTS Racing</option>
-      <option value="atlas">Atlas GP</option>
-    </select>
+<!-- BUILDER -->
+<div class="builder" id="builder">
+  <select id="team">
+    <option value="vassetti">Vassetti Corse</option>
+    <option value="vassetti_enduro">Vassetti Enduro</option>
+    <option value="mps">MPS Racing Team</option>
+    <option value="lotus">Lotus GP</option>
+    <option value="nc">NC Corse</option>
+    <option value="aierra">Aierra Racing</option>
+    <option value="stuttgart">Stuttgart</option>
+    <option value="redboars">Red Boars Racing</option>
+    <option value="hive">CS Hive Racing</option>
+    <option value="mismo">Mismo LTS Racing</option>
+    <option value="atlas">Atlas GP</option>
+  </select>
 
-    <input id="driverNameInput" placeholder="Driver Name">
+  <input id="driverName" placeholder="Driver Name">
 
-    <label>Driver Avatar (PNG)</label>
-    <input type="file" id="avatarUpload" accept="image/png">
+  <input type="file" id="avatarInput" accept="image/png">
 
-    <label>Paste Ratings</label>
-    <textarea id="ratingsInput" placeholder="-Attacking 6/10"></textarea>
+  <textarea id="ratingsInput" placeholder="-Attacking 6/10"></textarea>
 
-    <button onclick="applyAll()">Apply</button>
-  </div>
+  <button onclick="generate()">Generate Card</button>
+</div>
 
-  <div class="card" id="card">
-    <div class="accent"></div>
-    <img id="teamBgVisible" class="visible-logo" crossorigin="anonymous">
-    <img id="teamBgExport" class="export-logo" crossorigin="anonymous">
+<!-- HIDDEN RENDER CARD -->
+<div class="card hidden" id="card"></div>
 
-    <div class="top">
-      <img id="avatar" class="avatar" crossorigin="anonymous">
-      <div class="name" id="driverName">DRIVER</div>
-    </div>
+<!-- EXPORT -->
+<div class="export hidden" id="export">
+  <input id="filename" value="driver_card.png">
+  <img id="preview" class="preview">
+  <button onclick="saveImage()">Save Image</button>
+</div>
 
-    <div class="avg" id="average">0.00</div>
-    <div class="avg-sub">Average Rating</div>
-    <div class="stats" id="stats"></div>
-  </div>
-
-  <button class="export" onclick="exportPNG()">Export PNG</button>
 </div>
 
 <script>
 const teams={
-  vassetti:{bg1:"#F2C300",bg2:"#0B0B0B",accent:"#F2C300",stat:"#F2C300",logo:"assets/logos/vassetti.png"},
-  vassetti_enduro:{bg1:"#0B0B0B",bg2:"#000",accent:"#F2C300",stat:"#F2C300",logo:"assets/logos/vassetti_enduro.png"},
-  mps:{bg1:"#C40000",bg2:"#400000",accent:"#C40000",stat:"#E0E0E0",logo:"assets/logos/MPS.png"},
-  lotus:{bg1:"#B89B3C",bg2:"#0B0B0B",accent:"#B89B3C",stat:"#B89B3C",logo:"assets/logos/lotus.png"},
-  nc:{bg1:"#C40000",bg2:"#0B0B0B",accent:"#FFD200",stat:"#FFD200",logo:"assets/logos/nc.png"},
-  aierra:{bg1:"#FFFFFF",bg2:"#111",accent:"#FF4FA3",stat:"#FF4FA3",logo:"assets/logos/aierra.png"},
-  stuttgart:{bg1:"#CFCFCF",bg2:"#0A3A6A",accent:"#0A3A6A",stat:"#CFCFCF",logo:"assets/logos/stuttgart.png"},
-  redboars:{bg1:"#0B1530",bg2:"#C40000",accent:"#FFD200",stat:"#C40000",logo:"assets/logos/redboars.png"},
-  hive:{bg1:"#0F1F3A",bg2:"#000814",accent:"#C8A100",stat:"#C8A100",logo:"assets/logos/hive.png"},
-  mismo:{bg1:"#0B2A1A",bg2:"#102015",accent:"#FF7A18",stat:"#FF7A18",logo:"assets/logos/mismo.png"},
-  atlas:{bg1:"#7FD3FF",bg2:"#FFFFFF",accent:"#7FD3FF",stat:"#7FD3FF",logo:"assets/logos/atlas.png"}
+  vassetti:{bg1:"#F2C300",bg2:"#0B0B0B",stat:"#F2C300",logo:"assets/logos/vassetti.png"},
+  vassetti_enduro:{bg1:"#0B0B0B",bg2:"#000",stat:"#F2C300",logo:"assets/logos/vassetti_enduro.png"},
+  mps:{bg1:"#C40000",bg2:"#400000",stat:"#E0E0E0",logo:"assets/logos/mps.png"},
+  lotus:{bg1:"#B89B3C",bg2:"#0B0B0B",stat:"#B89B3C",logo:"assets/logos/lotus.png"},
+  nc:{bg1:"#C40000",bg2:"#0B0B0B",stat:"#FFD200",logo:"assets/logos/nc.png"},
+  aierra:{bg1:"#FFFFFF",bg2:"#111",stat:"#FF4FA3",logo:"assets/logos/aierra.png"},
+  stuttgart:{bg1:"#CFCFCF",bg2:"#0A3A6A",stat:"#CFCFCF",logo:"assets/logos/stuttgart.png"},
+  redboars:{bg1:"#0B1530",bg2:"#C40000",stat:"#C40000",logo:"assets/logos/redboars.png"},
+  hive:{bg1:"#0F1F3A",bg2:"#000814",stat:"#C8A100",logo:"assets/logos/hive.png"},
+  mismo:{bg1:"#0B2A1A",bg2:"#102015",stat:"#FF7A18",logo:"assets/logos/mismo.png"},
+  atlas:{bg1:"#7FD3FF",bg2:"#FFFFFF",stat:"#7FD3FF",logo:"assets/logos/atlas.png"}
 };
 
 function round25(v){return Math.round(v*4)/4}
 
-function parseRatings(text){
-  return text.split("\n").map(l=>{
-    const m=l.match(/-?\s*([^0-9]+)\s*([\d.]+)\s*\/10/i);
+function parseRatings(txt){
+  return txt.split("\n").map(l=>{
+    const m=l.match(/-?\s*([^0-9]+)\s*([\d.]+)/);
     return m?{name:m[1].trim(),value:round25(+m[2])}:null;
   }).filter(Boolean);
 }
 
-function applyAll(){
-  const t=teams[document.getElementById("team").value];
+async function generate(){
+  const team=teams[document.getElementById("team").value];
+  const name=document.getElementById("driverName").value.toUpperCase();
+  const ratings=parseRatings(document.getElementById("ratingsInput").value);
+
   const card=document.getElementById("card");
+  card.innerHTML="";
+  card.style.setProperty("--bg1",team.bg1);
+  card.style.setProperty("--bg2",team.bg2);
+  card.style.setProperty("--stat",team.stat);
 
-  card.style.setProperty("--bg1",t.bg1);
-  card.style.setProperty("--bg2",t.bg2);
-  card.style.setProperty("--accent",t.accent);
-  card.style.setProperty("--stat",t.stat);
+  card.innerHTML=`
+    <div class="logo-bg" style="background-image:url('${team.logo}')"></div>
+    <div class="avatar"></div>
+    <div class="name">${name}</div>
+    <div class="avg">${calcAvg(ratings).toFixed(2)}</div>
+    <div class="stats">
+      ${ratings.map(r=>`
+        <div class="stat">
+          <label>${r.name}</label>
+          <div class="value">${r.value.toFixed(2)}</div>
+        </div>`).join("")}
+    </div>
+  `;
 
-  document.getElementById("teamBgVisible").src=t.logo;
-  document.getElementById("teamBgExport").src=t.logo;
-
-  document.getElementById("driverName").textContent =
-    document.getElementById("driverNameInput").value.toUpperCase();
-
-  const stats=parseRatings(document.getElementById("ratingsInput").value);
-  const statsEl=document.getElementById("stats");
-  statsEl.innerHTML="";
-  let sum=0,count=0;
-
-  stats.forEach(s=>{
-    statsEl.insertAdjacentHTML(
-      "beforeend",
-      `<div class="stat"><label>${s.name}</label><div class="value">${s.value.toFixed(2)}</div></div>`
-    );
-    if(!["Penalties","Lag"].includes(s.name)){sum+=s.value;count++}
-  });
-
-  document.getElementById("average").textContent =
-    (count?round25(sum/count):0).toFixed(2);
-
-  const f=document.getElementById("avatarUpload");
-  if(f.files.length){
-    const r=new FileReader();
-    r.onload=e=>document.getElementById("avatar").src=e.target.result;
-    r.readAsDataURL(f.files[0]);
+  const file=document.getElementById("avatarInput").files[0];
+  if(file){
+    const img=URL.createObjectURL(file);
+    card.querySelector(".avatar").style.backgroundImage=`url(${img})`;
+    card.querySelector(".avatar").style.backgroundSize="cover";
   }
+
+  const canvas=await html2canvas(card,{scale:2,useCORS:true});
+  const img=canvas.toDataURL("image/png");
+
+  document.getElementById("preview").src=img;
+  document.getElementById("builder").classList.add("hidden");
+  document.getElementById("export").classList.remove("hidden");
 }
 
-async function exportPNG(){
-  const card=document.getElementById("card");
+function calcAvg(r){
+  const valid=r.filter(s=>!["Penalties","Lag"].includes(s.name));
+  return valid.reduce((a,b)=>a+b.value,0)/valid.length||0;
+}
 
-  await Promise.all([...card.querySelectorAll("img")].map(img=>{
-    if(!img.src) return Promise.resolve();
-    if(img.complete) return Promise.resolve();
-    return new Promise(r=>img.onload=img.onerror=r);
-  }));
-
-  const canvas=await html2canvas(card,{
-    scale:2,
-    useCORS:true,
-    backgroundColor:null
-  });
-
+function saveImage(){
   const a=document.createElement("a");
-  a.href=canvas.toDataURL("image/png");
-  a.download="driver_card.png";
+  a.href=document.getElementById("preview").src;
+  a.download=document.getElementById("filename").value||"driver_card.png";
   a.click();
 }
 </script>
 </body>
 </html>
-
