@@ -26,7 +26,7 @@ body{
 
 .panel{width:480px;display:grid;gap:14px}
 
-/* CONTROLS */
+/* TOOLBAR */
 .toolbar{
   background:rgba(0,0,0,.45);
   border-radius:18px;
@@ -74,7 +74,7 @@ body{
   position:absolute;
   inset:0;
   background:linear-gradient(135deg,var(--bg1),var(--bg2));
-  z-index:-3;
+  z-index:-4;
 }
 .card::after{
   content:"";
@@ -83,7 +83,7 @@ body{
   background:linear-gradient(60deg,rgba(255,255,255,.04) 1px,transparent 1px);
   background-size:28px 28px;
   opacity:.45;
-  z-index:-2;
+  z-index:-3;
 }
 
 .accent{
@@ -94,8 +94,8 @@ body{
   box-shadow:0 0 18px var(--accent);
 }
 
-/* TEAM LOGO (REAL IMG, EXPORT SAFE) */
-.team-bg{
+/* TEAM LOGOS */
+.visible-logo{
   position:absolute;
   left:50%;
   top:50%;
@@ -105,8 +105,18 @@ body{
   object-fit:contain;
   opacity:.09;
   filter:blur(2px);
-  z-index:-1;
+  z-index:-2;
   pointer-events:none;
+}
+
+.export-logo{
+  position:absolute;
+  left:0;
+  top:0;
+  width:1px;
+  height:1px;
+  opacity:0;
+  z-index:-999;
 }
 
 /* HEADER */
@@ -147,7 +157,11 @@ body{
   display:grid;
   gap:6px;
 }
-.stat label{font-size:12px;opacity:.7;font-weight:800}
+.stat label{
+  font-size:12px;
+  opacity:.7;
+  font-weight:800;
+}
 .value{
   padding:10px;
   border-radius:12px;
@@ -175,7 +189,17 @@ body{
 
   <div class="toolbar">
     <select id="team">
+      <option value="vassetti">Vassetti Corse</option>
+      <option value="vassetti_enduro">Vassetti Enduro</option>
       <option value="mps">MPS Racing Team</option>
+      <option value="lotus">Lotus GP</option>
+      <option value="nc">NC Corse</option>
+      <option value="aierra">Aierra Racing</option>
+      <option value="stuttgart">Stuttgart</option>
+      <option value="redboars">Red Boars Racing</option>
+      <option value="hive">CS Hive Racing</option>
+      <option value="mismo">Mismo LTS Racing</option>
+      <option value="atlas">Atlas GP</option>
     </select>
 
     <input id="driverNameInput" placeholder="Driver Name">
@@ -184,14 +208,16 @@ body{
     <input type="file" id="avatarUpload" accept="image/png">
 
     <label>Paste Ratings</label>
-    <textarea id="ratingsInput"></textarea>
+    <textarea id="ratingsInput" placeholder="-Attacking 6/10"></textarea>
 
     <button onclick="applyAll()">Apply</button>
   </div>
 
   <div class="card" id="card">
     <div class="accent"></div>
-    <img id="teamBg" class="team-bg" crossorigin="anonymous">
+    <img id="teamBgVisible" class="visible-logo" crossorigin="anonymous">
+    <img id="teamBgExport" class="export-logo" crossorigin="anonymous">
+
     <div class="top">
       <img id="avatar" class="avatar" crossorigin="anonymous">
       <div class="name" id="driverName">DRIVER</div>
@@ -207,13 +233,17 @@ body{
 
 <script>
 const teams={
-  mps:{
-    bg1:"#C40000",
-    bg2:"#400000",
-    accent:"#C40000",
-    stat:"#E0E0E0",
-    logo:"assets/logos/MPS.png"
-  }
+  vassetti:{bg1:"#F2C300",bg2:"#0B0B0B",accent:"#F2C300",stat:"#F2C300",logo:"assets/logos/vassetti.png"},
+  vassetti_enduro:{bg1:"#0B0B0B",bg2:"#000",accent:"#F2C300",stat:"#F2C300",logo:"assets/logos/vassetti_enduro.png"},
+  mps:{bg1:"#C40000",bg2:"#400000",accent:"#C40000",stat:"#E0E0E0",logo:"assets/logos/mps.png"},
+  lotus:{bg1:"#B89B3C",bg2:"#0B0B0B",accent:"#B89B3C",stat:"#B89B3C",logo:"assets/logos/lotus.png"},
+  nc:{bg1:"#C40000",bg2:"#0B0B0B",accent:"#FFD200",stat:"#FFD200",logo:"assets/logos/nc.png"},
+  aierra:{bg1:"#FFFFFF",bg2:"#111",accent:"#FF4FA3",stat:"#FF4FA3",logo:"assets/logos/aierra.png"},
+  stuttgart:{bg1:"#CFCFCF",bg2:"#0A3A6A",accent:"#0A3A6A",stat:"#CFCFCF",logo:"assets/logos/stuttgart.png"},
+  redboars:{bg1:"#0B1530",bg2:"#C40000",accent:"#FFD200",stat:"#C40000",logo:"assets/logos/redboars.png"},
+  hive:{bg1:"#0F1F3A",bg2:"#000814",accent:"#C8A100",stat:"#C8A100",logo:"assets/logos/hive.png"},
+  mismo:{bg1:"#0B2A1A",bg2:"#102015",accent:"#FF7A18",stat:"#FF7A18",logo:"assets/logos/mismo.png"},
+  atlas:{bg1:"#7FD3FF",bg2:"#FFFFFF",accent:"#7FD3FF",stat:"#7FD3FF",logo:"assets/logos/atlas.png"}
 };
 
 function round25(v){return Math.round(v*4)/4}
@@ -225,20 +255,8 @@ function parseRatings(text){
   }).filter(Boolean);
 }
 
-async function decodeImages(el){
-  const imgs=[...el.querySelectorAll("img")];
-  for(const img of imgs){
-    if(!img.src) continue;
-    if(img.decode){
-      try{await img.decode()}catch{}
-    }else{
-      await new Promise(r=>img.onload=img.onerror=r);
-    }
-  }
-}
-
 function applyAll(){
-  const t=teams.mps;
+  const t=teams[document.getElementById("team").value];
   const card=document.getElementById("card");
 
   card.style.setProperty("--bg1",t.bg1);
@@ -246,7 +264,9 @@ function applyAll(){
   card.style.setProperty("--accent",t.accent);
   card.style.setProperty("--stat",t.stat);
 
-  document.getElementById("teamBg").src=t.logo;
+  document.getElementById("teamBgVisible").src=t.logo;
+  document.getElementById("teamBgExport").src=t.logo;
+
   document.getElementById("driverName").textContent =
     document.getElementById("driverNameInput").value.toUpperCase();
 
@@ -276,7 +296,12 @@ function applyAll(){
 
 async function exportPNG(){
   const card=document.getElementById("card");
-  await decodeImages(card);
+
+  await Promise.all([...card.querySelectorAll("img")].map(img=>{
+    if(!img.src) return Promise.resolve();
+    if(img.complete) return Promise.resolve();
+    return new Promise(r=>img.onload=img.onerror=r);
+  }));
 
   const canvas=await html2canvas(card,{
     scale:2,
