@@ -9,14 +9,18 @@
 body{
   margin:0;
   background:#0b0b10;
-  font-family:Arial,sans-serif;
+  font-family:Arial, sans-serif;
   color:#fff;
   display:flex;
   justify-content:center;
   padding:24px;
 }
-.panel{width:520px;display:grid;gap:16px}
-input,select,textarea,button{
+.panel{
+  width:520px;
+  display:grid;
+  gap:16px;
+}
+input, select, textarea, button{
   padding:12px;
   border-radius:12px;
   border:none;
@@ -24,8 +28,14 @@ input,select,textarea,button{
   color:#fff;
   font-weight:700;
 }
-textarea{min-height:130px;resize:vertical}
-button{background:#3a5cff;cursor:pointer}
+textarea{
+  min-height:130px;
+  resize:vertical;
+}
+button{
+  background:#3a5cff;
+  cursor:pointer;
+}
 .preview{
   width:100%;
   border-radius:20px;
@@ -66,10 +76,10 @@ button{background:#3a5cff;cursor:pointer}
 <canvas id="canvas" width="960" height="1200" hidden></canvas>
 
 <script>
-const teams={
+const teams = {
   vassetti:{c1:"#F2C300",c2:"#0B0B0B",logo:"assets/logos/vassetti.png"},
   vassetti_enduro:{c1:"#0B0B0B",c2:"#000",logo:"assets/logos/vassetti_enduro.png"},
-  mps:{c1:"#C40000",c2:"#400000",logo:"assets/logos/MPS.png"},
+  mps:{c1:"#C40000",c2:"#400000",logo:"assets/logos/mps.png"},
   lotus:{c1:"#B89B3C",c2:"#0B0B0B",logo:"assets/logos/lotus.png"},
   nc:{c1:"#C40000",c2:"#0B0B0B",logo:"assets/logos/nc.png"},
   aierra:{c1:"#FFFFFF",c2:"#222",logo:"assets/logos/aierra.png"},
@@ -80,72 +90,100 @@ const teams={
   atlas:{c1:"#7FD3FF",c2:"#FFFFFF",logo:"assets/logos/atlas.png"}
 };
 
+function roundQuarter(n){
+  return Math.round(n * 4) / 4;
+}
+
 function parseRatings(text){
   return text.split("\n").map(l=>{
-    const m=l.match(/-?\s*([^0-9]+)\s*([\d.]+)/);
-    return m?{name:m[1].trim(),value:+m[2]}:null;
+    const m = l.match(/-?\s*([^0-9]+)\s*([\d.]+)/);
+    return m ? { name: m[1].trim(), value: roundQuarter(+m[2]) } : null;
   }).filter(Boolean);
+}
+
+function drawLogoContain(ctx, img, x, y, w, h){
+  const r = Math.min(w / img.width, h / img.height);
+  const nw = img.width * r;
+  const nh = img.height * r;
+  ctx.drawImage(img, x + (w - nw)/2, y + (h - nh)/2, nw, nh);
 }
 
 function generate(){
   const teamKey = document.getElementById("teamSelect").value;
-  const teamData = teams[teamKey];
+  const team = teams[teamKey];
   const name = document.getElementById("driverName").value.toUpperCase();
   const ratings = parseRatings(document.getElementById("ratingsInput").value);
 
   const canvas = document.getElementById("canvas");
   const ctx = canvas.getContext("2d");
 
-  // Background
+  // Background gradient
   const grad = ctx.createLinearGradient(0,0,960,1200);
-  grad.addColorStop(0,teamData.c1);
-  grad.addColorStop(1,teamData.c2);
+  grad.addColorStop(0,team.c1);
+  grad.addColorStop(1,team.c2);
   ctx.fillStyle = grad;
+  ctx.fillRect(0,0,960,1200);
+
+  // Vignette
+  const vg = ctx.createRadialGradient(480,600,200,480,600,600);
+  vg.addColorStop(0,"rgba(0,0,0,0)");
+  vg.addColorStop(1,"rgba(0,0,0,0.45)");
+  ctx.fillStyle = vg;
   ctx.fillRect(0,0,960,1200);
 
   // Logo watermark
   const logo = new Image();
   logo.onload = () => {
     ctx.globalAlpha = 0.08;
-    ctx.drawImage(logo,180,300,600,600);
+    drawLogoContain(ctx, logo, 180, 320, 600, 600);
     ctx.globalAlpha = 1;
     drawContent();
   };
-  logo.src = teamData.logo;
+  logo.src = team.logo;
 
   function drawContent(){
-    ctx.fillStyle="#fff";
-    ctx.textAlign="center";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#fff";
 
-    ctx.font="900 48px Arial";
-    ctx.fillText(name,480,80);
+    ctx.font = "900 52px Arial";
+    ctx.fillText(name, 480, 90);
 
     const valid = ratings.filter(r=>!["Penalties","Lag"].includes(r.name));
-    const avg = valid.reduce((a,b)=>a+b.value,0)/(valid.length||1);
+    const avg = roundQuarter(
+      valid.reduce((a,b)=>a+b.value,0) / (valid.length||1)
+    );
 
-    ctx.font="900 120px Arial";
-    ctx.fillText(avg.toFixed(2),480,220);
+    ctx.font = "900 120px Arial";
+    ctx.fillText(avg.toFixed(2), 480, 220);
 
-    ctx.font="16px Arial";
-    ctx.fillText("Average Rating",480,260);
+    ctx.font = "18px Arial";
+    ctx.fillText("Average Rating", 480, 255);
 
-    ctx.font="700 28px Arial";
-    ctx.textAlign="left";
-    let x=80,y=330;
-
+    // Stats grid
+    ctx.textAlign = "left";
+    ctx.font = "700 28px Arial";
+    let x1=120, x2=520, y=320;
     ratings.forEach((r,i)=>{
-      ctx.fillText(`${r.name}: ${r.value.toFixed(2)}`,x,y);
-      y+=48;
-      if(i===4){x=500;y=330;}
+      const x = i < Math.ceil(ratings.length/2) ? x1 : x2;
+      if(i === Math.ceil(ratings.length/2)) y = 320;
+      ctx.fillText(`${r.name}: ${r.value.toFixed(2)}`, x, y);
+      y += 48;
     });
 
-    if(document.getElementById("avatarInput").files[0]){
+    // Avatar
+    const file = document.getElementById("avatarInput").files[0];
+    if(file){
       const a = new Image();
-      a.onload=()=>{
-        ctx.drawImage(a,380,850,200,200);
+      a.onload = () => {
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(380, 840, 200, 200, 28);
+        ctx.clip();
+        ctx.drawImage(a, 380, 840, 200, 200);
+        ctx.restore();
         finish();
       };
-      a.src = URL.createObjectURL(document.getElementById("avatarInput").files[0]);
+      a.src = URL.createObjectURL(file);
     } else finish();
   }
 
@@ -155,12 +193,11 @@ function generate(){
 }
 
 function saveImage(){
-  const a=document.createElement("a");
-  a.href=document.getElementById("preview").src;
-  a.download=document.getElementById("filename").value||"driver_card.png";
+  const a = document.createElement("a");
+  a.href = document.getElementById("preview").src;
+  a.download = document.getElementById("filename").value || "driver_card.png";
   a.click();
 }
 </script>
 </body>
 </html>
-
