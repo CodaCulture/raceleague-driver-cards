@@ -26,7 +26,6 @@ input,select,textarea,button{
 }
 textarea{min-height:130px;resize:vertical}
 button{background:#3a5cff;cursor:pointer}
-
 .preview{
   width:100%;
   border-radius:20px;
@@ -38,7 +37,7 @@ button{background:#3a5cff;cursor:pointer}
 <body>
 <div class="panel">
 
-  <select id="team">
+  <select id="teamSelect">
     <option value="vassetti">Vassetti Corse</option>
     <option value="vassetti_enduro">Vassetti Enduro</option>
     <option value="mps">MPS Racing Team</option>
@@ -54,14 +53,13 @@ button{background:#3a5cff;cursor:pointer}
 
   <input id="driverName" placeholder="Driver Name">
   <input type="file" id="avatarInput" accept="image/png">
-
   <textarea id="ratingsInput" placeholder="-Attacking 6/10"></textarea>
 
   <button onclick="generate()">Generate Card</button>
 
   <input id="filename" value="driver_card.png">
   <img id="preview" class="preview">
-  <button onclick="save()">Save Image</button>
+  <button onclick="saveImage()">Save Image</button>
 
 </div>
 
@@ -82,47 +80,48 @@ const teams={
   atlas:{c1:"#7FD3FF",c2:"#FFFFFF",logo:"assets/logos/atlas.png"}
 };
 
-function parseRatings(t){
-  return t.split("\n").map(l=>{
+function parseRatings(text){
+  return text.split("\n").map(l=>{
     const m=l.match(/-?\s*([^0-9]+)\s*([\d.]+)/);
-    return m?{name:m[1].trim(),v:+m[2]}:null;
+    return m?{name:m[1].trim(),value:+m[2]}:null;
   }).filter(Boolean);
 }
 
 function generate(){
-  const team=teams[team.value];
-  const name=driverName.value.toUpperCase();
-  const ratings=parseRatings(ratingsInput.value);
+  const teamKey = document.getElementById("teamSelect").value;
+  const teamData = teams[teamKey];
+  const name = document.getElementById("driverName").value.toUpperCase();
+  const ratings = parseRatings(document.getElementById("ratingsInput").value);
 
-  const canvas=document.getElementById("canvas");
-  const ctx=canvas.getContext("2d");
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
 
-  // background
-  const g=ctx.createLinearGradient(0,0,960,1200);
-  g.addColorStop(0,team.c1);
-  g.addColorStop(1,team.c2);
-  ctx.fillStyle=g;
+  // Background
+  const grad = ctx.createLinearGradient(0,0,960,1200);
+  grad.addColorStop(0,teamData.c1);
+  grad.addColorStop(1,teamData.c2);
+  ctx.fillStyle = grad;
   ctx.fillRect(0,0,960,1200);
 
-  // logo watermark
-  const logo=new Image();
-  logo.onload=()=>{
-    ctx.globalAlpha=0.08;
+  // Logo watermark
+  const logo = new Image();
+  logo.onload = () => {
+    ctx.globalAlpha = 0.08;
     ctx.drawImage(logo,180,300,600,600);
-    ctx.globalAlpha=1;
-
+    ctx.globalAlpha = 1;
     drawContent();
   };
-  logo.src=team.logo;
+  logo.src = teamData.logo;
 
   function drawContent(){
     ctx.fillStyle="#fff";
-    ctx.font="900 48px Arial";
     ctx.textAlign="center";
+
+    ctx.font="900 48px Arial";
     ctx.fillText(name,480,80);
 
-    const valid=ratings.filter(r=>!["Penalties","Lag"].includes(r.name));
-    const avg=valid.reduce((a,b)=>a+b.v,0)/valid.length||0;
+    const valid = ratings.filter(r=>!["Penalties","Lag"].includes(r.name));
+    const avg = valid.reduce((a,b)=>a+b.value,0)/(valid.length||1);
 
     ctx.font="900 120px Arial";
     ctx.fillText(avg.toFixed(2),480,220);
@@ -130,33 +129,35 @@ function generate(){
     ctx.font="16px Arial";
     ctx.fillText("Average Rating",480,260);
 
-    let x=80,y=330;
     ctx.font="700 28px Arial";
+    ctx.textAlign="left";
+    let x=80,y=330;
+
     ratings.forEach((r,i)=>{
-      ctx.fillText(`${r.name}: ${r.v.toFixed(2)}`,x,y);
-      y+=50;
+      ctx.fillText(`${r.name}: ${r.value.toFixed(2)}`,x,y);
+      y+=48;
       if(i===4){x=500;y=330;}
     });
 
-    if(avatarInput.files[0]){
-      const a=new Image();
+    if(document.getElementById("avatarInput").files[0]){
+      const a = new Image();
       a.onload=()=>{
-        ctx.drawImage(a,380,340,200,200);
+        ctx.drawImage(a,380,850,200,200);
         finish();
       };
-      a.src=URL.createObjectURL(avatarInput.files[0]);
+      a.src = URL.createObjectURL(document.getElementById("avatarInput").files[0]);
     } else finish();
   }
 
   function finish(){
-    preview.src=canvas.toDataURL("image/png");
+    document.getElementById("preview").src = canvas.toDataURL("image/png");
   }
 }
 
-function save(){
+function saveImage(){
   const a=document.createElement("a");
-  a.href=preview.src;
-  a.download=filename.value||"driver_card.png";
+  a.href=document.getElementById("preview").src;
+  a.download=document.getElementById("filename").value||"driver_card.png";
   a.click();
 }
 </script>
