@@ -24,7 +24,7 @@ body{
   padding:24px;
 }
 
-.panel{width:460px;display:grid;gap:14px}
+.panel{width:480px;display:grid;gap:14px}
 
 /* CONTROLS */
 .toolbar{
@@ -36,11 +36,19 @@ body{
 }
 .toolbar select,
 .toolbar input,
+.toolbar textarea,
 .toolbar button{
   padding:12px;
   border-radius:12px;
   border:none;
   font-weight:700;
+  font-family:inherit;
+}
+.toolbar textarea{
+  background:#111;
+  color:#fff;
+  resize:vertical;
+  min-height:140px;
 }
 .toolbar select,
 .toolbar input{
@@ -86,17 +94,19 @@ body{
   box-shadow:0 0 18px var(--accent);
 }
 
-/* TEAM LOGO BACKDROP (AUTO) */
+/* TEAM LOGO BACKGROUND — REAL IMG (EXPORT SAFE) */
 .team-bg{
   position:absolute;
-  inset:-20%;
-  background-position:center;
-  background-size:contain;
-  background-repeat:no-repeat;
-  opacity:.085;
+  left:50%;
+  top:50%;
+  width:150%;
+  height:150%;
+  transform:translate(-50%,-50%);
+  object-fit:contain;
+  opacity:.09;
   filter:blur(2px);
-  transform:scale(1.1);
   z-index:-1;
+  pointer-events:none;
 }
 
 /* HEADER */
@@ -114,7 +124,7 @@ body{
   text-transform:uppercase;
 }
 
-/* RATING */
+/* AVERAGE */
 .avg{
   font-size:64px;
   font-weight:900;
@@ -131,13 +141,17 @@ body{
   gap:12px;
 }
 .stat{
-  background:rgba(0,0,0,.5);
+  background:rgba(0,0,0,.55);
   border-radius:16px;
   padding:12px;
   display:grid;
   gap:6px;
 }
-.stat label{font-size:12px;opacity:.7;font-weight:800}
+.stat label{
+  font-size:12px;
+  opacity:.7;
+  font-weight:800;
+}
 .value{
   padding:10px;
   border-radius:12px;
@@ -167,7 +181,7 @@ body{
     <select id="team">
       <option value="vassetti">Vassetti Corse</option>
       <option value="vassetti_enduro">Vassetti Enduro</option>
-      <option value="MPS">MPS Racing Team</option>
+      <option value="mps">MPS Racing Team</option>
       <option value="lotus">Lotus GP</option>
       <option value="nc">NC Corse</option>
       <option value="aierra">Aierra Racing</option>
@@ -183,19 +197,21 @@ body{
     <label>Driver Avatar (PNG)</label>
     <input type="file" id="avatarUpload" accept="image/png">
 
+    <label>Paste Ratings</label>
+    <textarea id="ratingsInput" placeholder="-Attacking 6/10"></textarea>
+
     <button onclick="applyAll()">Apply</button>
   </div>
 
   <div class="card" id="card">
     <div class="accent"></div>
-    <div class="team-bg" id="teamBg"></div>
-
+    <img id="teamBg" class="team-bg">
     <div class="top">
       <img id="avatar" class="avatar">
       <div class="name" id="driverName">DRIVER</div>
     </div>
 
-    <div class="avg" id="average">6.75</div>
+    <div class="avg" id="average">0.00</div>
     <div class="avg-sub">Average Rating</div>
     <div class="stats" id="stats"></div>
   </div>
@@ -206,90 +222,91 @@ body{
 <script>
 const teams={
   vassetti:{bg1:"#F2C300",bg2:"#0B0B0B",accent:"#F2C300",stat:"#F2C300",logo:"assets/logos/vassetti.png"},
-  vassetti_enduro:{bg1:"#0B0B0B",bg2:"#000000",accent:"#F2C300",stat:"#F2C300",logo:"assets/logos/vassetti_enduro.png"},
+  vassetti_enduro:{bg1:"#0B0B0B",bg2:"#000",accent:"#F2C300",stat:"#F2C300",logo:"assets/logos/vassetti_enduro.png"},
   lotus:{bg1:"#B89B3C",bg2:"#0B0B0B",accent:"#B89B3C",stat:"#B89B3C",logo:"assets/logos/lotus.png"},
   nc:{bg1:"#C40000",bg2:"#0B0B0B",accent:"#FFD200",stat:"#FFD200",logo:"assets/logos/nc.png"},
-  mps:{bg1:"#8E8E8E",bg2:"#140000",accent:"#B00000",stat:"#E0E0E0",logo:"assets/logos/mps.png"},
-  aierra:{bg1:"#FFFFFF",bg2:"#111111",accent:"#FF4FA3",stat:"#FF4FA3",logo:"assets/logos/aierra.png"}, /* primary white, secondary pink */
+  mps:{bg1:"#C40000",bg2:"#400000",accent:"#C40000",stat:"#E0E0E0",logo:"assets/logos/mps.png"},
+  aierra:{bg1:"#FFFFFF",bg2:"#111",accent:"#FF4FA3",stat:"#FF4FA3",logo:"assets/logos/aierra.png"},
   stuttgart:{bg1:"#CFCFCF",bg2:"#0A3A6A",accent:"#0A3A6A",stat:"#CFCFCF",logo:"assets/logos/stuttgart.png"},
   redboars:{bg1:"#0B1530",bg2:"#C40000",accent:"#FFD200",stat:"#C40000",logo:"assets/logos/redboars.png"},
   hive:{bg1:"#0F1F3A",bg2:"#000814",accent:"#C8A100",stat:"#C8A100",logo:"assets/logos/hive.png"},
-  mimso:{bg1:"#0B2A1A",bg2:"#102015",accent:"#FF7A18",stat:"#FF7A18",logo:"assets/logos/mimso.png"},
+  mismo:{bg1:"#0B2A1A",bg2:"#102015",accent:"#FF7A18",stat:"#FF7A18",logo:"assets/logos/mismo.png"},
   atlas:{bg1:"#7FD3FF",bg2:"#FFFFFF",accent:"#7FD3FF",stat:"#7FD3FF",logo:"assets/logos/atlas.png"}
 };
 
-const ratings=[
- ["Attacking",6],
- ["Defending",6],
- ["Speed",7.5],
- ["Consistency",7],
- ["Car Control",6.5],
- ["Cornering",7.75],
- ["Logic",7.25]
-];
+function round25(v){ return Math.round(v*4)/4; }
 
-const statsEl=document.getElementById("stats");
-
-function renderStats(){
- statsEl.innerHTML="";
- ratings.forEach(([n,v])=>{
-  const s=document.createElement("div");
-  s.className="stat";
-  s.innerHTML=`<label>${n}</label><div class="value">${v.toFixed(2)}</div>`;
-  statsEl.appendChild(s);
- });
- updateAvg();
-}
-
-function updateAvg(){
- const avg=ratings.reduce((a,r)=>a+r[1],0)/ratings.length;
- document.getElementById("average").textContent=(Math.round(avg*4)/4).toFixed(2);
-}
-
-function applyTeam(){
- const t=teams[document.getElementById("team").value];
- const card=document.getElementById("card");
- card.style.setProperty("--bg1",t.bg1);
- card.style.setProperty("--bg2",t.bg2);
- card.style.setProperty("--accent",t.accent);
- card.style.setProperty("--stat",t.stat);
-
- // Auto-load the team logo as background watermark
- document.getElementById("teamBg").style.backgroundImage = `url(${t.logo})`;
-}
-
-function loadImage(input,cb){
- if(!input.files.length)return;
- const r=new FileReader();
- r.onload=e=>cb(e.target.result);
- r.readAsDataURL(input.files[0]);
+function parseRatings(text){
+  const lines=text.split("\n");
+  const parsed=[];
+  for(const line of lines){
+    const m=line.match(/-?\s*([^0-9]+)\s*([\d.]+)\s*\/\s*10/i);
+    if(!m) continue;
+    parsed.push({
+      name:m[1].trim(),
+      value:round25(parseFloat(m[2]))
+    });
+  }
+  return parsed;
 }
 
 function applyAll(){
- document.getElementById("driverName").textContent =
-  document.getElementById("driverNameInput").value.toUpperCase();
+  document.getElementById("driverName").textContent =
+    document.getElementById("driverNameInput").value.toUpperCase();
 
- applyTeam();
+  const t=teams[document.getElementById("team").value];
+  const card=document.getElementById("card");
+  card.style.setProperty("--bg1",t.bg1);
+  card.style.setProperty("--bg2",t.bg2);
+  card.style.setProperty("--accent",t.accent);
+  card.style.setProperty("--stat",t.stat);
+  document.getElementById("teamBg").src=t.logo;
 
- loadImage(document.getElementById("avatarUpload"),src=>{
-  document.getElementById("avatar").src=src;
- });
+  const ratings=parseRatings(document.getElementById("ratingsInput").value);
+  const statsEl=document.getElementById("stats");
+  statsEl.innerHTML="";
+
+  let avgSum=0, avgCount=0;
+
+  ratings.forEach(r=>{
+    const s=document.createElement("div");
+    s.className="stat";
+    s.innerHTML=`<label>${r.name}</label><div class="value">${r.value.toFixed(2)}</div>`;
+    statsEl.appendChild(s);
+
+    if(!["Penalties","Lag"].includes(r.name)){
+      avgSum+=r.value;
+      avgCount++;
+    }
+  });
+
+  const avg=avgCount?round25(avgSum/avgCount):0;
+  document.getElementById("average").textContent=avg.toFixed(2);
+
+  const av=document.getElementById("avatarUpload");
+  if(av.files.length){
+    const r=new FileReader();
+    r.onload=e=>document.getElementById("avatar").src=e.target.result;
+    r.readAsDataURL(av.files[0]);
+  }
 }
 
-document.getElementById("team").addEventListener("change", applyTeam);
+function waitForImages(el){
+  return Promise.all([...el.querySelectorAll("img")].map(img=>{
+    if(!img.src||img.complete) return Promise.resolve();
+    return new Promise(res=>{img.onload=img.onerror=res;});
+  }));
+}
 
 async function exportPNG(){
- const canvas=await html2canvas(document.getElementById("card"),{scale:2});
- const a=document.createElement("a");
- a.href=canvas.toDataURL("image/png");
- a.download="driver_card.png";
- a.click();
+  const card=document.getElementById("card");
+  await waitForImages(card);
+  const canvas=await html2canvas(card,{scale:2});
+  const a=document.createElement("a");
+  a.href=canvas.toDataURL("image/png");
+  a.download="driver_card.png";
+  a.click();
 }
-
-renderStats();
-applyTeam();
 </script>
 </body>
 </html>
-
-
